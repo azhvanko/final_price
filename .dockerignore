@@ -1,0 +1,8 @@
+*
+!data
+!gunicorn.conf.py
+!manage.py
+!poetry.lock
+!pyproject.toml
+!README.md
+!src

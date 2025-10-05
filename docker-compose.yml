@@ -1,0 +1,147 @@
+name: final_price
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: final_price:latest
+    hostname: app
+    container_name: final_price_backend
+    restart: unless-stopped
+    init: true
+    deploy:
+      resources:
+        limits:
+          memory: 4096MB
+        reservations:
+          memory: 1024MB
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+    ports:
+      - "${API_HOST_PORT}:${API_CONTAINER_PORT}"
+    networks:
+      - final_price
+    depends_on:
+      - postgres
+      - redis
+    entrypoint: |
+      bash -c '
+        /app/data/scripts/wait-services.sh --postgres --redis && \
+        /usr/local/bin/gunicorn --chdir /app --config /app/gunicorn.conf.py
+      '
+    env_file:
+      - .env
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${API_CONTAINER_PORT}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  worker:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: final_price:latest
+    hostname: worker
+    restart: unless-stopped
+    init: true
+    deploy:
+      resources:
+        limits:
+          memory: 256MB
+          cpus: '1.0'
+        reservations:
+          memory: 128MB
+          cpus: '0.5'
+      replicas: 8
+      update_config:
+        parallelism: 2
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+    networks:
+      - final_price
+    depends_on:
+      - postgres
+      - redis
+    entrypoint: |
+      bash -c '
+        /app/data/scripts/wait-services.sh --postgres --redis && \
+        rq worker ${RQ_QUEUE_NAME} --url ${REDIS_DSN} --serializer src.rq.serializers.ORJSONSerializer \
+        --worker-class src.rq.worker.DBWorker --config src.rq.config
+      '
+    env_file:
+      - .env
+  postgres:
+    image: postgres:17.6-bookworm
+    hostname: postgres
+    container_name: final_price_postgres
+    restart: unless-stopped
+    init: true
+    deploy:
+      resources:
+        limits:
+          memory: 1024MB
+          cpus: '1.0'
+        reservations:
+          memory: 256MB
+          cpus: '0.5'
+    ports:
+      - "${POSTGRES_HOST_PORT}:5432"
+    networks:
+      - final_price
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:8.2.1-bookworm
+    hostname: redis
+    container_name: final_price_redis
+    restart: unless-stopped
+    init: true
+    command: "redis-server /etc/redis/redis.conf"
+    deploy:
+      resources:
+        limits:
+          memory: 1024MB
+          cpus: '1.0'
+        reservations:
+          memory: 256MB
+          cpus: '0.5'
+    ports:
+      - "${REDIS_HOST_PORT}:6379"
+    networks:
+      - final_price
+    volumes:
+      - redis_data:/data
+      - ./data/configs/redis/redis.conf:/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  final_price:
+    name: final_price
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: final_price_postgres_data
+    driver: local
+  redis_data:
+    name: final_price_redis_data
+    driver: local
