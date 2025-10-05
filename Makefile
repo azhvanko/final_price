@@ -4,7 +4,7 @@ COMPOSE_CMD = docker compose -f ./docker-compose.yml
 
 # shortcuts
 up:
-	$(COMPOSE_CMD) up --build
+	$(COMPOSE_CMD) up --build -d
 
 down:
 	$(COMPOSE_CMD) down --remove-orphans
