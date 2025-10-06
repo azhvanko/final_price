@@ -16,22 +16,19 @@ def _create_cors_regex(host: str) -> str:
 
 
 def add_middlewares(app: FastAPI, config: Config) -> None:
-    # CORS
     if config.environment != Environment.LOCALHOST:
-        cors_kwargs = {"allow_origin_regex": _create_cors_regex(config.host.host)}
-    else:
-        cors_kwargs = {"allow_origins": ["*"]}
-    app.add_middleware(
-        CORSMiddleware,
-        **cors_kwargs,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    # trusted hosts
-    if config.environment != Environment.LOCALHOST:
+        # preferably handled by the reverse proxy (e.g., Nginx)
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origin_regex=_create_cors_regex(config.host.host),
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        # potentially redundant behind a properly configured reverse proxy
         app.add_middleware(
             TrustedHostMiddleware,
             allowed_hosts=[config.host.host, f"*.{config.host.host}"],
         )
+        # fixes 'Mixed Content' errors when behind an HTTPS proxy.
         app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])  # TODO debug
