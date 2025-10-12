@@ -1,49 +1,46 @@
-import hashlib
-import hmac
-import os
+import logging
 
 from fastapi import Request
-from sqladmin.authentication import AuthenticationBackend
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from ..config import Config
+from ..db.base import AsyncDBSession
+from ..db.models import User
+from ..enums import Environment
+from ..utils import verify_password
 
 __all__ = ("AdminAuthenticationBackend",)
 
+logger = logging.getLogger(__name__)
 
-class AdminAuthenticationBackend(AuthenticationBackend):  # TODO
-    _iterations: int
-    _salt: bytes
-    _admin_username: bytes
-    _admin_password: bytes
 
+class AdminAuthenticationBackend:
     def __init__(self, config: Config):
-        super().__init__(config.secret_key)
-        self._iterations = 128_000
-        self._salt = os.urandom(16)
-        self._admin_username = config.admin_username.encode()
-        self._admin_password = self._pbkdf2(config.admin_password, self._salt)
+        middlewares = [Middleware(SessionMiddleware, secret_key=config.secret_key),]
+        if config.environment != Environment.LOCALHOST:
+            middlewares.append(Middleware(ProxyHeadersMiddleware, trusted_hosts=["*"]),)
+        self.middlewares = middlewares
 
-    def _pbkdf2(self, password: str, salt: bytes) -> bytes:
-        return hashlib.pbkdf2_hmac(
-            "sha256",
-            password.encode("utf-8"),
-            salt,
-            self._iterations,
-        )
-
-    def _verify_password(self, provided: str) -> bool:
-        candidate = self._pbkdf2(provided, self._salt)
-        return hmac.compare_digest(candidate, self._admin_password)
+    async def _get_db_user(self, username: str) -> User | None:
+        async with AsyncDBSession() as session:
+            try:
+                return await session.get(User, username)
+            except Exception as e:
+                logger.error(f"An error occurred: {e}", stack_info=True)
 
     async def login(self, request: Request) -> bool:
         form = await request.form()
         username = form.get("username", "").strip()
+        user: User | None = await self._get_db_user(username)
+        if not (user and user.is_active):
+            return False
         password = form.get("password", "")
-        user_ok = hmac.compare_digest(username.encode(), self._admin_username)
-        password_ok = self._verify_password(password)
-        if user_ok and password_ok:
+        if verify_password(user.password, password):
             request.session.clear()
-            request.session["authenticated_user"] = username
+            request.session["user"] = user.username
+            request.session["role"] = user.role
             return True
         return False
 
@@ -52,4 +49,4 @@ class AdminAuthenticationBackend(AuthenticationBackend):  # TODO
         return True
 
     async def authenticate(self, request: Request) -> bool:
-        return "authenticated_user" in request.session
+        return "user" in request.session

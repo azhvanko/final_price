@@ -2,17 +2,10 @@ import logging
 
 from sqlalchemy import delete
 
-from .base import (
-    DBEngine,
-    DBSession,
-    MetaData,
-)
-from .models import Order
+from ..base import DBSession
+from ..models import Order
 
-__all__ = (
-    "delete_all_orders",
-    "init_db",
-)
+__all__ = ("delete_all_orders",)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +19,3 @@ def delete_all_orders() -> None:
             session.rollback()
             logger.error(f"An error occurred: {e}", stack_info=True)
             raise
-
-
-def init_db() -> None:
-    MetaData.create_all(DBEngine)

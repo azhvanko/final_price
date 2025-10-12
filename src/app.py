@@ -17,7 +17,6 @@ from .api import router
 from .config import Config, get_config
 from .exceptions import HTTPException
 from .logging import get_logging_config
-from .middleware import add_middlewares
 from .rq.utils import (
     shutdown_redis_resources,
     startup_redis_resources,
@@ -107,7 +106,6 @@ def init_app():
     config = get_config()
     dictConfig(get_logging_config(config.debug))
     app = FastAPI(debug=config.debug, lifespan=lifespan)
-    add_middlewares(app, config)
     register_admin_view(app, config)
     app.include_router(router)
     app.add_exception_handler(RedisError, redis_exception_handler)

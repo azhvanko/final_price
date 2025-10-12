@@ -2,7 +2,6 @@ from functools import cache, cached_property
 from pathlib import Path
 
 from pydantic import (
-    AnyHttpUrl,
     computed_field,
     Field,
     PostgresDsn,
@@ -22,10 +21,11 @@ class Config(BaseSettings):
     # Project
     debug: bool = Field(default=False)
     environment: Environment = Field(...)
-    host: AnyHttpUrl = Field(...)
     secret_key: str = Field(...)
-    admin_username: str = Field(...)
-    admin_password: str = Field(...)
+    default_admin_username: str = Field(...)
+    default_admin_password: str = Field(...)
+    default_user_username: str = Field(...)
+    default_user_password: str = Field(...)
     # Postgres
     postgres_dsn: PostgresDsn = Field(...)
     # Redis / RQ

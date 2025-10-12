@@ -26,6 +26,8 @@ services:
       - "${API_HOST_PORT}:${API_CONTAINER_PORT}"
     networks:
       - final_price
+    volumes:
+      - .:/app
     depends_on:
       - postgres
       - redis
@@ -106,7 +108,7 @@ services:
       timeout: 5s
       retries: 10
   redis:
-    image: redis:8.2.1-bookworm
+    image: redis:8.2-bookworm
     hostname: redis
     container_name: final_price_redis
     restart: unless-stopped

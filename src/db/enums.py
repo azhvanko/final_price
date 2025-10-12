@@ -1,6 +1,9 @@
 from ..enums import BaseEnum
 
-__all__ = ("OrderStatus",)
+__all__ = (
+    "OrderStatus",
+    "UserRole",
+)
 
 
 class OrderStatus(str, BaseEnum):
@@ -17,3 +20,8 @@ class OrderStatus(str, BaseEnum):
                 return "Order has been confirmed and accepted for processing"
             case self.PENDING:
                 return "Order is pending confirmation"
+
+
+class UserRole(str, BaseEnum):
+    ADMIN = "ADMIN"
+    USER = "USER"

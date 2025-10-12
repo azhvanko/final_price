@@ -6,8 +6,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from .base import DeclarativeBase
-from .enums import OrderStatus
+from ..base import DeclarativeBase
+from ..enums import OrderStatus
 
 __all__ = ("Order",)
 

@@ -12,11 +12,17 @@ down:
 clear:
 	$(COMPOSE_CMD) down --remove-orphans -v
 
-# PostgreSQL
+# db
+make_migrations:
+	$(COMPOSE_CMD) exec app alembic -c /app/src/db/alembic.ini revision --autogenerate || true
+
+migrate:
+	$(COMPOSE_CMD) exec app alembic -c /app/src/db/alembic.ini upgrade head || true
+
+create_default_users:
+	$(COMPOSE_CMD) exec -it app bash -c "python manage.py create_default_users"
+
 delete_all_orders:
 	$(COMPOSE_CMD) exec -it app bash -c "python manage.py delete_all_orders"
 
-init_db:
-	$(COMPOSE_CMD) exec -it app bash -c "python manage.py init_db"
-
-.PHONY: up down clear delete_all_orders init_db
+.PHONY: up down clear make_migrations migrate create_default_users delete_all_orders

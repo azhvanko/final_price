@@ -1,5 +1,5 @@
 # builder
-FROM python:3.13.7-slim-bookworm AS builder
+FROM python:3.13.8-slim-trixie AS builder
 
 ARG PROJECT_PATH=/app
 ARG WHEELS_DIR_PATH=$PROJECT_PATH/wheels
@@ -19,13 +19,14 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update -y -q && \
     python -m pip wheel --no-cache-dir --wheel-dir $WHEELS_DIR_PATH -r requirements.txt --require-hashes
 
 # final
-FROM python:3.13.7-slim-bookworm AS final
+FROM python:3.13.8-slim-trixie AS final
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 ARG USER=admin
 ARG USER_ID=1000
+ARG GROUP_ID=1000
 ARG BUILDER_WHEELS_DIR_PATH=/app/wheels
 ARG PROJECT_PATH=/app
 ARG WHEELS_DIR_PATH=$PROJECT_PATH/wheels
@@ -39,7 +40,8 @@ RUN --mount=type=bind,from=builder,source=$BUILDER_WHEELS_DIR_PATH,target=$WHEEL
             netcat-traditional \
             libpq-dev && \
     # add new user
-    useradd -M -o -l -u $USER_ID -U $USER && \
+    groupadd -g $GROUP_ID $USER && \
+    useradd -M -o -l -s /bin/bash -u $USER_ID -g $GROUP_ID $USER && \
     # install python packages
     python -m pip install --no-cache-dir -U pip setuptools wheel && \
     python -m pip install --no-cache-dir $WHEELS_DIR_PATH/* && \
