@@ -15,6 +15,7 @@ from redis.exceptions import RedisError
 from .admin.utils import register_admin_view
 from .api import router
 from .config import Config, get_config
+from .enums import Environment
 from .exceptions import HTTPException
 from .logging import get_logging_config
 from .rq.utils import (
@@ -82,36 +83,33 @@ def http_exception_handler(_: Request, exc: HTTPException) -> ORJSONResponse:
     )
 
 
-def register_not_found_exception_handler(app: FastAPI, config: Config) -> None:
-    @app.exception_handler(404)
-    async def not_found_exception_handler(_: Request, __: Exception) -> FileResponse:
-        return FileResponse(
-            f"{config.static_dir}/404.html",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-
-
 def register_static_routes(app: FastAPI, config: Config) -> None:
-    app.mount(
-        "/assets",
-        StaticFiles(directory=config.assets_dir),
-        name="assets",
-    )
-    @app.get("/", response_class=FileResponse, include_in_schema=False)
-    async def serve_index():
-        return FileResponse(f"{config.static_dir}/index.html")
+    if config.environment == Environment.LOCALHOST:
+        app.mount(
+            "/assets",
+            StaticFiles(directory=config.assets_dir),
+            name="assets",
+        )
+        @app.get("/", response_class=FileResponse, include_in_schema=False)
+        async def serve_index():
+            return FileResponse(f"{config.static_dir}/index.html")
 
 
 def init_app():
     config = get_config()
     dictConfig(get_logging_config(config.debug))
-    app = FastAPI(debug=config.debug, lifespan=lifespan)
+    app = FastAPI(
+        debug=config.debug,
+        lifespan=lifespan,
+        openapi_url="/api/openapi.json",
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+    )
     register_admin_view(app, config)
     app.include_router(router)
     app.add_exception_handler(RedisError, redis_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(HTTPException, http_exception_handler)
     register_static_routes(app, config)
-    register_not_found_exception_handler(app, config)
     patch_openapi_schema(app)
     return app

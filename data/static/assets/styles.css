@@ -107,6 +107,11 @@ button:active:not(:disabled) {
     transform: scale(0.98);
 }
 
+button:focus-visible:not(:disabled) {
+    outline: 2px solid #0b5ed7;
+    outline-offset: 2px;
+}
+
 button:disabled {
     background-color: #333;
     color: #777;
@@ -117,21 +122,24 @@ button:disabled {
     position: fixed;
     bottom: 20px;
     left: 50%;
-    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 20px);
+    box-sizing: border-box;
     padding: 1rem 2rem;
     border-radius: 8px;
     font-weight: bold;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
-    z-index: 1000;
-    transform: translate(-50%, 20px);
+    transform: translate(-50%, 25px);
+    transition: opacity 0.35s, transform 0.35s, visibility 0.35s;
 }
 
 .toast.show {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%);
+    transform: translate(-50%, 0);
 }
 
 .toast.success {

@@ -17,6 +17,7 @@ def register_admin_view(app: FastAPI, config: Config) -> None:
         app,
         AsyncDBEngine,
         session_maker=AsyncDBSession,
+        base_url="/api/admin",
         authentication_backend=AdminAuthenticationBackend(config),
     )
     admin.add_view(OrderAdmin)
