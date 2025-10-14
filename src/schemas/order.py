@@ -22,17 +22,14 @@ class Order(BaseModel):
         str,
         StringConstraints(
             min_length=2,
-            strip_whitespace=True,
-            pattern=r"^[a-zA-Zа-яА-ЯёЁ\s'’‑-]+$",
+            max_length=128,
         ),
     ] = Field(...)
     phone_number: t.Annotated[
         str,
         StringConstraints(
-            strip_whitespace=True,
             min_length=7,
             max_length=28,
-            pattern=r"^\+?[0-9()\- ]+$",
         ),
     ] = Field(...)
 

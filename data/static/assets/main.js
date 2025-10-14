@@ -26,7 +26,7 @@ function isInputDataValid(nameInput, phoneInput) {
         return { isValid: false, message: 'Invalid name. Please use letters and spaces only' };
     }
     const phone = phoneInput.value.trim();
-    const phoneRegex = /^[\d ()+-]+$/;
+    const phoneRegex = /^\+?[\d ()-]+$/;
     const phoneDigits = phone.replace(/\D/g, '');
     const hasValidPhoneChars = phoneRegex.test(phone);
     if (phoneDigits.length < 7 || phoneDigits.length > 15 || !hasValidPhoneChars) {
