@@ -27,8 +27,8 @@ def _validate_phone_number(phone_number: str) -> tuple[bool, str | None, str | N
             phonenumbers.PhoneNumberFormat.E164,
         )
         return True, None, normalized
-    except phonenumbers.NumberParseException as e:
-        return False, f"Invalid phone number format: {str(e)}", None
+    except phonenumbers.NumberParseException:
+        return False, "Invalid phone number format", None
     except Exception as e:
         logger.error(
             f"Unexpected error validating phone number: {e}",
